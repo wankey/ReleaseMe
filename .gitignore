@@ -1,4 +1,6 @@
 360jiagu/output
 360jiagu/.cache
 360jiagu/jiagu.db
-es_android
+workspace
+venv
+.idea
