@@ -27,8 +27,10 @@ class ReleaseMe(object):
         return subprocess.check_call(['git', 'clone', '-b', self.branch_name, self.server_path, self.workspace])
 
     def read_properties(self):
-        prop = Properties(os.path.join(self.workspace, 'gradle.properties')).get_properties()
-        os.chdir(os.path.join(self.workspace, "app"))
+        self.prop = Properties(os.path.join('.', 'config.properties')).get_properties()
+        self.accout = prop["360_ACCOUNT"]
+        self.password = prop["360_PASSWORD"]
+        self.market_file = os.path.abspath(prop["MARKET_FILE"])
         self.sign_file = os.path.abspath(prop["STORE_FILE"])
         self.key_alias = prop["KEY_ALIAS"]
         self.store_password = prop["STORE_PASSWORD"]
@@ -41,6 +43,7 @@ class ReleaseMe(object):
             cmd = './gradlew'
         else:
             cmd = 'gradle'
+
         return subprocess.check_call([cmd, "assembleRelease"])
 
     def copy_product_to_outputs(self, folder):
@@ -83,7 +86,7 @@ class ReleaseMe(object):
                 if self.channel_name == "all".lower():
                     ret = subprocess.check_call(
                         ["java", "-jar", "walle-cli-all.jar", "batch", '-f',
-                         os.path.join(self.workspace, 'config/markets.txt'),
+                        self.market_file,
                          src_file])
                 else:
                     ret = subprocess.check_call(
@@ -91,13 +94,10 @@ class ReleaseMe(object):
                          src_file])
 
     def jiagu(self):
-        prop = Properties(os.path.join('.', 'config.properties')).get_properties()
-        accout = prop["360_ACCOUNT"]
-        password = prop["360_PASSWORD"]
         dir_360_jiagu = os.path.join(os.getcwd(), '360jiagu')
         java_360_jiagu = os.path.join(dir_360_jiagu, 'java/bin/java')
         subprocess.check_call(['chmod', 'a+x', java_360_jiagu])
-        ret = subprocess.check_call([java_360_jiagu, '-jar', dir_360_jiagu + '/jiagu.jar', '-login', accout, password])
+        ret = subprocess.check_call([java_360_jiagu, '-jar', dir_360_jiagu + '/jiagu.jar', '-login', self.accout, self.password])
         if ret != 0:
             print("360开发者中心登录失败")
             exit()

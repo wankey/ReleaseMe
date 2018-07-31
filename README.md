@@ -13,10 +13,15 @@ shell脚本实现从git拉取代码、编译、输出渠道包等工序的自动
     python /your-path-to-ReleaseMe/release.py -s git_url -b BRANCH/TAG -c all(或者指定的渠道名)
     
 ##IMPORTANT
-1. 项目根目录的gradle.properties中需要配置签名文件信息<br>
-STORE_FILE=""<br>
-KEY_ALIAS=""<br>
-STORE_PASSWORD=""<br>
-KEY_PASSWORD=""<br>
-2. 项目根目录下需要有个config文件夹，内含文件markets.txt，文件中每行一个渠道名
-3. 如需使用360加固或发布到360应用市场，请在[config.properties](/config.properties)中配置你的360开发者平台的账号和密码
+
+请在[config.properties](/config.properties)中配置以下信息<br>
+STORE_FILE<br>
+MARKET_FILE<br>
+KEY_ALIAS<br>
+STORE_PASSWORD<br>
+KEY_PASSWORD<br>
+*360_ACCOUNT="YOUR_ACCOUNT_FOR_DEV_360"*<br>
+_360_PASSWORD="YOUR_PASSWORD_FOR_DEV_360"_<br>
+_USE_RES_GUARD=false_<br>
+
+斜体字为可选项，仅在需要使用时配置
