@@ -35,6 +35,7 @@ class ReleaseMe(object):
         self.key_alias = prop["KEY_ALIAS"]
         self.store_password = prop["STORE_PASSWORD"]
         self.key_password = prop["KEY_PASSWORD"]
+        self.useResguard = prop["USE_RES_GUARD"]
 
     def build(self):
         self.read_properties()
