@@ -21,3 +21,9 @@ shell脚本实现从git拉取代码、编译、输出渠道包等工序的自动
 1. 使用前请修改[config.properties.sample](/config.properties,sample)中的配置，并重命名删除文件名中的.sample
 2. 本项目默认使用[walle](https://github.com/Meituan-Dianping/walle)作为渠道包输出工具，请在app中添加相关依赖以获取渠道信息
 3. 如需使用[AndResGuard](https://github.com/shwenzhang/AndResGuard),请按照官方文档配置好app/build.gradle
+
+
+## TODO
+- [ ] 支持给各ProductFlavor使用不同的签名文件、输出不同的渠道包
+- [ ] 给特定渠道重设application name
+- [ ] 可视化界面配置config.properties
