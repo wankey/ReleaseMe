@@ -57,7 +57,7 @@ class ReleaseMe(object):
             arg="resguardRelease"
         else:
             arg="assembleRelease"
-        ret = subprocess.check_call([cmd, arg])
+        ret = subprocess.check_call([cmd, "clean", arg])
         if ret != 0:
             print("编译失败")
             exit()
@@ -162,9 +162,9 @@ def main(argv):
                 branch_name = arg
             elif opt in ['-c', '--channel']:
                 channel = arg
-            else:
-                print("参数错误")
-                exit()
+
+        if branch_name == "":
+            branch_name = "master"
 
         root_dir = os.getcwd()
         release = ReleaseMe(branch_name, channel)
@@ -175,7 +175,7 @@ def main(argv):
             ret = release.jiagu()
             if ret != 0:
                 print("加固失败")
-            
+
         os.chdir(root_dir)
         out_puts = os.path.join(release.workspace, "outputs")
         release.make_channels(out_puts)
