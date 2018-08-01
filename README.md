@@ -13,7 +13,7 @@ shell脚本实现从git拉取代码、编译、输出渠道包等工序的自动
 ## USAGE
     python /your-path-to-ReleaseMe/release.py -b BRANCH/TAG [-c]
 
--b 后为需要打包的分支名
+-b 后为需要打包的分支名<br>
 -c 为最后要生成的渠道名，不配置则读取[markets.txt](/markets.txt)文件
 
 ## IMPORTANT
@@ -24,6 +24,9 @@ shell脚本实现从git拉取代码、编译、输出渠道包等工序的自动
 
 
 ## TODO
+- [ ] checkout源码前判断工作目录是否已有相同版本的源码，有则不重新拉取
+- [x] 支持[packer-ng-plugin](https://github.com/mcxiaoke/packer-ng-plugin)输出渠道包
 - [ ] 支持给各ProductFlavor使用不同的签名文件、输出不同的渠道包
+- [ ] 支持使用给定的config.xml进行资源混淆
 - [ ] 给特定渠道重设application name
 - [ ] 可视化界面配置config.properties

@@ -5,3 +5,5 @@ workspace
 venv
 .idea
 __pycache__/
+android.jks
+config.properties

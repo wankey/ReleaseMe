@@ -1,5 +1,4 @@
 self
-T360
 oppo
 huawei
 yyb
@@ -14,3 +13,4 @@ samsung
 leshi
 mumayi
 baidu
+T360

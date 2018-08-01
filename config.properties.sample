@@ -21,5 +21,7 @@ CHANNEL_NAME_FOR_360=
 #如果需要使用，请按照官方文档配置app/build.gradle
 USE_RES_GUARD=false
 
-#渠道清单
+#选择渠道包输出工具(1:walle,2:packer-ng)
+MARKET_TOOL_TYPE=1
+#渠道列表
 MARKET_FILE=./markets.txt
