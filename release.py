@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+
 from Properties import Properties
 
 
@@ -23,12 +24,12 @@ class ReleaseMe(object):
         self.gitPassword = prop["GIT_PASSWORD"]
 
         if gitProtocol != 'git':
-            self.server_path = self.server_path.replace("//","//"+self.gitAccount+":"+self.gitPassword+"@")
+            self.server_path = self.server_path.replace("//", "//" + self.gitAccount + ":" + self.gitPassword + "@")
 
         project_name = (self.server_path.split('/')[1]).split('.')[0]
         self.workspace = os.path.join(os.path.abspath('.'), 'workspace', project_name, self.branch_name)
 
-        self.marketTool=prop["MARKET_TOOL_TYPE"]
+        self.marketTool = prop["MARKET_TOOL_TYPE"]
         self.market_file = os.path.abspath(prop["MARKET_FILE"])
         self.sign_file = os.path.abspath(prop["STORE_FILE"])
         self.key_alias = prop["KEY_ALIAS"]
@@ -53,10 +54,10 @@ class ReleaseMe(object):
             cmd = './gradlew'
         else:
             cmd = 'gradle'
-        if self.useResguard=="true":
-            arg="resguardRelease"
+        if self.useResguard == "true":
+            arg = "resguardRelease"
         else:
-            arg="assembleRelease"
+            arg = "assembleRelease"
         ret = subprocess.check_call([cmd, "clean", arg])
         if ret != 0:
             print("编译失败")
@@ -78,7 +79,8 @@ class ReleaseMe(object):
         dir_360_jiagu = os.path.join(self.toolDir, '360jiagu')
         java_360_jiagu = os.path.join(dir_360_jiagu, 'java/bin/java')
         subprocess.check_call(['chmod', 'a+x', java_360_jiagu])
-        ret = subprocess.check_call([java_360_jiagu, '-jar', dir_360_jiagu + '/jiagu.jar', '-login', self.accout360, self.password360])
+        ret = subprocess.check_call(
+            [java_360_jiagu, '-jar', dir_360_jiagu + '/jiagu.jar', '-login', self.accout360, self.password360])
         if ret != 0:
             print("360开发者中心登录失败")
             exit()
@@ -108,7 +110,8 @@ class ReleaseMe(object):
                 if name.endswith("_jiagu.apk"):
                     src_file = os.path.join(out_puts, name)
                     ret = subprocess.check_call(
-                        ["java", '-jar', self.toolDir+'/apksigner.jar', 'sign', "--ks", self.sign_file, '--ks-key-alias',
+                        ["java", '-jar', self.toolDir + '/apksigner.jar', 'sign', "--ks", self.sign_file,
+                         '--ks-key-alias',
                          self.key_alias, '--ks-pass', 'pass:' + self.key_password, '--key-pass',
                          "pass:" + self.key_password, '--out',
                          dst_file, src_file])
@@ -116,18 +119,18 @@ class ReleaseMe(object):
                         os.remove(src_file)
         return ret
 
-    def make_channels(self,out_puts):
-        destDir=os.path.join(out_puts,"markets")
+    def make_channels(self, out_puts):
+        destDir = os.path.join(out_puts, "markets")
 
         if self.channel_name == "":
-            file = open(self.market_file,'r')
+            file = open(self.market_file, 'r')
             lines = file.readlines()
             for line in lines:
                 line = line.strip()
-                if not len(line) or line.startswith('#'):#判断是否是空行或注释行
+                if not len(line) or line.startswith('#'):  # 判断是否是空行或注释行
                     continue
 
-                if self.channelNameFor360 !="" and line == self.channelNameFor360 :
+                if self.channelNameFor360 != "" and line == self.channelNameFor360:
                     continue
                 else:
                     self.channel_name = self.channel_name + line + ","
@@ -138,19 +141,28 @@ class ReleaseMe(object):
             src_file = os.path.join(out_puts, name)
             if name.endswith("release.apk"):
                 if self.marketTool == "1":
-                    ret = subprocess.check_call(["java", "-jar", self.toolDir + "/walle-cli-all.jar", "batch", '-c', self.channel_name, src_file, destDir])
+                    ret = subprocess.check_call(
+                        ["java", "-jar", self.toolDir + "/walle-cli-all.jar", "batch", '-c', self.channel_name,
+                         src_file, destDir])
                 elif self.marketTool == "2":
-                    ret = subprocess.check_call(["java", "-jar", self.toolDir + "/packer-ng-2.0.1.jar", "generate", "--channels="+ self.channel_name, "--output=" + destDir, src_file])
+                    ret = subprocess.check_call(["java", "-jar", self.toolDir + "/packer-ng-2.0.1.jar", "generate",
+                                                 "--channels=" + self.channel_name, "--output=" + destDir, src_file])
             elif name.endswith("-360_signed.apk"):
                 if self.marketTool == "1":
-                    ret = subprocess.check_call(["java", "-jar", self.toolDir + "/walle-cli-all.jar", "batch", '-c', self.channelNameFor360, src_file, destDir])
+                    ret = subprocess.check_call(
+                        ["java", "-jar", self.toolDir + "/walle-cli-all.jar", "batch", '-c', self.channelNameFor360,
+                         src_file, destDir])
                 elif self.marketTool == "2":
-                    tmpFile=os.path.join(destDir,"tmp")
-                    ret = subprocess.check_call(["java", "-jar", self.toolDir + "/packer-ng-2.0.1.jar", "generate", "--channels="+ self.channelNameFor360, "--output=" + tmpFile, src_file])
+                    tmpFile = os.path.join(destDir, "tmp")
+                    ret = subprocess.check_call(["java", "-jar", self.toolDir + "/packer-ng-2.0.1.jar", "generate",
+                                                 "--channels=" + self.channelNameFor360, "--output=" + tmpFile,
+                                                 src_file])
                     for name in os.listdir(tmpFile):
-                        shutil.copy(os.path.join(tmpFile, name), os.path.join(destDir, name.replace("360_signed-"+self.channelNameFor360+".apk",self.channelNameFor360+".apk")))
+                        shutil.copy(os.path.join(tmpFile, name), os.path.join(destDir, name.replace(
+                            "360_signed-" + self.channelNameFor360 + ".apk", self.channelNameFor360 + ".apk")))
                     if os.path.exists(tmpFile):
                         shutil.rmtree(tmpFile)
+
 
 def main(argv):
     try:
@@ -171,7 +183,7 @@ def main(argv):
         release.read_properties()
         ret = release.checkout()
         ret = release.build()
-        if release.channelNameFor360 !="":
+        if release.channelNameFor360 != "":
             ret = release.jiagu()
             if ret != 0:
                 print("加固失败")
