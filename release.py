@@ -9,61 +9,73 @@ from Properties import Properties
 
 
 class ReleaseMe(object):
-
-    def __init__(self, branch_name, channel_name):
-        self.branch_name = branch_name
-        self.channel_name = channel_name
-        self.toolDir = os.path.join(os.getcwd(), "tool")
+    git_protocol = None
+    server_path = None
+    workspace = None
+    sign_file = None
+    key_alias = None
+    store_password = None
+    key_password = None
+    use_resguard = None
+    account360 = None
+    password360 = None
+    use_tinker = None
+    module_app = None
+    market_tool_type = None
+    toolDir = os.path.join(os.getcwd(), "tool")
 
     def read_properties(self):
-        prop = Properties(os.path.join('.', 'config.properties')).get_properties()
+        prop = Properties(os.path.join(os.getcwd(), "config", 'config.properties')).get_properties()
 
-        gitProtocol = prop["GIT_PROTOCOL"]
+        self.git_protocol = prop["GIT_PROTOCOL"]
         self.server_path = prop["GIT_PATH"]
-        self.gitAccount = prop["GIT_USERNAME"]
-        self.gitPassword = prop["GIT_PASSWORD"]
-
-        if gitProtocol != 'git':
-            self.server_path = self.server_path.replace("//", "//" + self.gitAccount + ":" + self.gitPassword + "@")
-
-        project_name = (self.server_path.split('/')[1]).split('.')[0]
-        self.workspace = os.path.join(os.path.abspath('.'), 'workspace', project_name, self.branch_name)
-
-        self.marketTool = prop["MARKET_TOOL_TYPE"]
-        self.market_file = os.path.abspath(prop["MARKET_FILE"])
         self.sign_file = os.path.abspath(prop["STORE_FILE"])
         self.key_alias = prop["KEY_ALIAS"]
         self.store_password = prop["STORE_PASSWORD"]
         self.key_password = prop["KEY_PASSWORD"]
-        self.useResguard = prop["USE_RES_GUARD"]
-        self.channelNameFor360 = prop["CHANNEL_NAME_FOR_360"]
-        self.accout360 = prop["360_ACCOUNT"]
+        self.use_resguard = prop["USE_RES_GUARD"]
+        self.account360 = prop["360_ACCOUNT"]
         self.password360 = prop["360_PASSWORD"]
+        self.use_tinker = prop["USE_TINKER"]
+        self.module_app = prop["MODULE_APP"]
+        self.market_tool_type = prop["MARKET_TOOL_TYPE"]
 
-    def checkout(self):
+    def checkout(self, branch_name):
+        tmp_path = self.server_path.split('/')
+        if self.git_protocol == 'git':
+            project_name = tmp_path[1].split('.')[0]
+        else:
+            project_name = (tmp_path[len(tmp_path) - 1]).split('.')[0]
+
+        self.workspace = os.path.join(os.path.abspath('.'), 'workspace', project_name, branch_name)
         if os.path.exists(self.workspace):
             shutil.rmtree(self.workspace)
-        ret = subprocess.check_call(['git', 'clone', '-b', self.branch_name, self.server_path, self.workspace])
+        ret = subprocess.check_call(['git', 'clone', '-b', branch_name, self.server_path, self.workspace])
         if ret != 0:
             print('代码拉取错误，请重试')
             exit()
+        else:
+            return ret
 
-    def build(self):
+    def build(self, product):
         os.chdir(self.workspace)
-        if os.path.exists(os.path.join(self.workspace, 'gradlew')):
+        gradlew_file = os.path.join(self.workspace, 'gradlew')
+        if os.path.exists(gradlew_file):
+            subprocess.check_call(['chmod', 'a+x', os.path.join(self.workspace, 'gradlew')])
             cmd = './gradlew'
         else:
             cmd = 'gradle'
-        if self.useResguard == "true":
-            arg = "resguardRelease"
+        if self.use_resguard == "true":
+            if product != "":
+                arg = "assemble" + product.capitalize() + "Release"
+            else:
+                arg = "resguard" + product.capitalize() + "Release"
         else:
-            arg = "assembleRelease"
-        ret = subprocess.check_call([cmd, "clean", arg])
-        if ret != 0:
-            print("编译失败")
-            exit()
-        else:
-            self.copy_product_to_outputs(os.path.join(self.workspace, "app/build/outputs/apk/"))
+            if product != "":
+                arg = "assemble" + product.capitalize() + "Release"
+            else:
+                arg = "assembleRelease"
+        return subprocess.check_call([cmd, arg])
 
     def copy_product_to_outputs(self, folder):
         for name in os.listdir(folder):
@@ -75,37 +87,38 @@ class ReleaseMe(object):
                     os.makedirs(dst)
                 shutil.copy(os.path.join(folder, name), os.path.join(dst, name))
 
+    def backup_apk_for_tinker(self, folder):
+        dst = os.path.join(self.workspace, "outputs")
+        for name in os.listdir(folder):
+            shutil.copytree(os.path.join(folder, name), os.path.join(dst, name))
+
     def jiagu(self):
         dir_360_jiagu = os.path.join(self.toolDir, '360jiagu')
-        java_360_jiagu = os.path.join(dir_360_jiagu, 'java/bin/java')
-        subprocess.check_call(['chmod', 'a+x', java_360_jiagu])
+        java = os.path.join(dir_360_jiagu, 'java/bin/java')
+        subprocess.check_call(['chmod', 'a+x', java])
         ret = subprocess.check_call(
-            [java_360_jiagu, '-jar', dir_360_jiagu + '/jiagu.jar', '-login', self.accout360, self.password360])
+            [java, '-jar', dir_360_jiagu + '/jiagu.jar', '-login', self.account360, self.password360])
         if ret != 0:
             print("360开发者中心登录失败")
             exit()
-
-        ret = subprocess.check_call([java_360_jiagu, '-jar', dir_360_jiagu + '/jiagu.jar', '-config', 'null'])
+        ret = subprocess.check_call([java, '-jar', dir_360_jiagu + '/jiagu.jar', '-config', 'null'])
         if ret != 0:
             print("360加固宝设置失败")
             exit()
 
-        out_puts = os.path.join(self.workspace, "outputs")
+        out_puts = os.path.join(self.workspace, 'outputs')
         for name in os.listdir(out_puts):
             if name.endswith("-release.apk"):
-                ret = self.jiagu_apk(java_360_jiagu, dir_360_jiagu, out_puts, name)
-        return ret
+                self.jiagu_apk(java, dir_360_jiagu, out_puts, name)
 
     def jiagu_apk(self, java, jiagu_dir, out_puts, file):
         base_file = os.path.join(out_puts, file)
-        dst_file = base_file.replace('.apk', '-360_signed.apk')
-
-        if os.path.exists(dst_file):
-            return 0
+        dst_file = base_file.replace('.apk', '-360.apk')
 
         ret = subprocess.check_call(
-            [java, '-jar', jiagu_dir + '/jiagu.jar', '-jiagu', os.path.join(out_puts, file), out_puts])
+            [java, '-jar', jiagu_dir + '/jiagu.jar', '-jiagu', base_file, out_puts])
         if ret == 0:
+
             for name in os.listdir(out_puts):
                 if name.endswith("_jiagu.apk"):
                     src_file = os.path.join(out_puts, name)
@@ -119,79 +132,115 @@ class ReleaseMe(object):
                         os.remove(src_file)
         return ret
 
-    def make_channels(self, out_puts):
-        destDir = os.path.join(out_puts, "markets")
+    def call_packer_tool(self, file_name, src_file, channel_name, extra_info, dst_file):
+        print("===========================================================")
+        print("当前正在输出的渠道是：" + channel_name)
+        channel_name = channel_name.strip().replace('\n', '')
+        if self.market_tool_type == "1":
+            if extra_info == "":
+                subprocess.check_call(
+                    ["java", "-jar", self.toolDir + "/walle-cli-all.jar", "batch"
+                        , '-c', channel_name
+                        , src_file
+                        , dst_file])
+            else:
+                extra_info = extra_info.strip().replace('\n', '')
+                subprocess.check_call(
+                    ["java", "-jar", self.toolDir + "/walle-cli-all.jar", "put"
+                        , '-c', channel_name
+                        , '-e', extra_info
+                        , src_file
+                        , os.path.join(dst_file, file_name.replace("-360.apk", "_" + channel_name + ".apk"))])
+        elif self.market_tool_type == "2":
+            tmpFile = os.path.join(dst_file, "tmp")
+            subprocess.check_call(
+                ["java", "-jar", self.toolDir + "/packer-ng-2.0.1.jar", "generate",
+                 "--channels=" + channel_name
+                    , "--output=" + tmpFile
+                    , src_file
+                 ])
+        else:
+            print("未支持的渠道包工具")
 
-        if self.channel_name == "":
-            file = open(self.market_file, 'r')
-            lines = file.readlines()
-            for line in lines:
-                line = line.strip()
-                if not len(line) or line.startswith('#'):  # 判断是否是空行或注释行
-                    continue
+    def make_channel(self, out_puts, file_name, channel_name, product):
+        dst_file = os.path.join(out_puts, "channelApk")
+        if product != "":
+            dst_file = os.path.join(dst_file, product)
 
-                if self.channelNameFor360 != "" and line == self.channelNameFor360:
-                    continue
+        if not os.path.exists(dst_file):
+            os.makedirs(dst_file)
+
+        src_file = os.path.join(out_puts, file_name)
+
+        if os.path.isfile(src_file):
+            if "!" in channel_name:
+                channel = channel_name.split("!")[0]
+                extra_info = channel_name.split("!")[1]
+                self.call_packer_tool(file_name, src_file, channel, extra_info, dst_file)
+            else:
+                self.call_packer_tool(file_name, src_file, channel_name, "", dst_file)
+
+    def prepare_market_list(self, channel_name):
+        out_puts = os.path.join(self.workspace, 'outputs')
+        for file in os.listdir(out_puts):
+            if file.endswith("-360.apk"):
+                product = file.split("-")[1]
+                if channel_name == "all":
+                    market_file_path = os.path.join('.', 'config')
+                    market_file_path = os.path.join(market_file_path, '{0}_markets.txt'.format(product))
+                    if os.path.exists(market_file_path):
+                        market_file = open(market_file_path, 'r')
+                        lines = market_file.readlines()
+                        for line in lines:
+                            self.make_channel(out_puts, file, line, product)
+                    else:
+                        print("没有找到对应的渠道配置文件")
                 else:
-                    self.channel_name = self.channel_name + line + ","
-
-        print(self.channel_name)
-
-        for name in os.listdir(out_puts):
-            src_file = os.path.join(out_puts, name)
-            if name.endswith("release.apk"):
-                if self.marketTool == "1":
-                    ret = subprocess.check_call(
-                        ["java", "-jar", self.toolDir + "/walle-cli-all.jar", "batch", '-c', self.channel_name,
-                         src_file, destDir])
-                elif self.marketTool == "2":
-                    ret = subprocess.check_call(["java", "-jar", self.toolDir + "/packer-ng-2.0.1.jar", "generate",
-                                                 "--channels=" + self.channel_name, "--output=" + destDir, src_file])
-            elif name.endswith("-360_signed.apk"):
-                if self.marketTool == "1":
-                    ret = subprocess.check_call(
-                        ["java", "-jar", self.toolDir + "/walle-cli-all.jar", "batch", '-c', self.channelNameFor360,
-                         src_file, destDir])
-                elif self.marketTool == "2":
-                    tmpFile = os.path.join(destDir, "tmp")
-                    ret = subprocess.check_call(["java", "-jar", self.toolDir + "/packer-ng-2.0.1.jar", "generate",
-                                                 "--channels=" + self.channelNameFor360, "--output=" + tmpFile,
-                                                 src_file])
-                    for name in os.listdir(tmpFile):
-                        shutil.copy(os.path.join(tmpFile, name), os.path.join(destDir, name.replace(
-                            "360_signed-" + self.channelNameFor360 + ".apk", self.channelNameFor360 + ".apk")))
-                    if os.path.exists(tmpFile):
-                        shutil.rmtree(tmpFile)
+                    self.make_channel(out_puts, file, channel_name, product)
 
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv[1:], 'b:c:', ['branch=', 'channel='])
+        opts, args = getopt.getopt(argv[1:], 'b:c:p:', ['branch=', 'channel=', 'product='])
         branch_name = ""
         channel = ""
+        product = ""
         for opt, arg in opts:
             if opt in ['-b', '--branch']:
                 branch_name = arg
             elif opt in ['-c', '--channel']:
                 channel = arg
-
-        if branch_name == "":
-            branch_name = "master"
-
+            elif opt in ['-p', '--product']:
+                product = arg
+            else:
+                print("参数错误")
         root_dir = os.getcwd()
-        release = ReleaseMe(branch_name, channel)
+        release = ReleaseMe()
         release.read_properties()
-        ret = release.checkout()
-        ret = release.build()
-        if release.channelNameFor360 != "":
-            ret = release.jiagu()
-            if ret != 0:
-                print("加固失败")
+        ret = release.checkout(branch_name)
+        if ret != 0:
+            print('代码拉取错误，请重试')
+            exit()
 
+        ret = release.build(product)
+        if ret != 0:
+            print('编译失败')
+            exit()
+
+        tmp_build_folder = os.path.join(release.workspace, release.module_app, "build")
+
+        if release.use_tinker == "true":
+            release.backup_apk_for_tinker(os.path.join(tmp_build_folder, "bakApk/"))
+
+        release.copy_product_to_outputs(os.path.join(tmp_build_folder, "outputs/apk/"))
         os.chdir(root_dir)
-        out_puts = os.path.join(release.workspace, "outputs")
-        release.make_channels(out_puts)
-        subprocess.check_call(['open', out_puts])
+        release.jiagu()
+
+        if channel != "":
+            release.prepare_market_list(channel)
+
+        outputs = os.path.join(release.workspace, 'outputs')
+        subprocess.check_call(['open', outputs])
     except getopt.GetoptError:
         sys.exit()
 
