@@ -1,9 +1,8 @@
 tool/360jiagu/output
 tool/360jiagu/.cache
 tool/360jiagu/jiagu.db
-workspace
+workspace/
 venv
 .idea
 __pycache__/
-android.jks
-config.properties
+config/

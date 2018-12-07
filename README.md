@@ -3,6 +3,9 @@
 
 ## CHANGELOG
 
+### 2018-12-07
+1. 提供对ProductFlavor的支持
+2. Tinker基准包备份到output目录
 ### 2018-08-01
 添加了更多的可配置项，使用更为灵活
 ### 2018-05-11
@@ -11,10 +14,11 @@
 shell脚本实现从git拉取代码、编译、输出渠道包等工序的自动化
 
 ## USAGE
-    python /your-path-to-ReleaseMe/release.py -b BRANCH/TAG [-c]
+    python /your-path-to-ReleaseMe/release.py -b BRANCH/TAG [-c] all [-p] FlavorName
 
 -b 后为需要打包的分支名<br>
--c 为最后要生成的渠道名，不配置则读取[markets.txt](/markets.txt)文件
+-c 为最后要生成的渠道名，all则读取markets.txt输出全部渠道<br>
+-p 为ProductFlavor的名字
 
 ## IMPORTANT
 
