@@ -40,39 +40,34 @@ class ReleaseMe(object):
         self.module_app = prop["MODULE_APP"]
         self.market_tool_type = prop["MARKET_TOOL_TYPE"]
 
-    def checkout(self, branch_name):
-        tmp_path = self.server_path.split('/')
-        if self.git_protocol == 'git':
-            project_name = tmp_path[1].split('.')[0]
-        else:
-            project_name = (tmp_path[len(tmp_path) - 1]).split('.')[0]
-
+    def checkout(self,project_name, branch_name):
+        project_path = os.path.join(self.server_path, project_name + ".git")
         self.workspace = os.path.join(os.path.abspath('.'), 'workspace', project_name, branch_name)
+
         if os.path.exists(self.workspace):
             shutil.rmtree(self.workspace)
-        ret = subprocess.check_call(['git', 'clone', '-b', branch_name, self.server_path, self.workspace])
+        ret = subprocess.check_call(['git', 'clone', '-b', branch_name, project_path, self.workspace])
         if ret != 0:
             print('代码拉取错误，请重试')
             exit()
         else:
             return ret
 
-    def build(self, product):
+    def build(self, product_flavor):
         os.chdir(self.workspace)
         gradlew_file = os.path.join(self.workspace, 'gradlew')
         if os.path.exists(gradlew_file):
-            subprocess.check_call(['chmod', 'a+x', os.path.join(self.workspace, 'gradlew')])
-            cmd = './gradlew'
+            cmd = 'sh gradlew'
         else:
             cmd = 'gradle'
         if self.use_resguard == "true":
-            if product != "":
-                arg = "assemble" + product.capitalize() + "Release"
+            if product_flavor != "":
+                arg = "assemble" + product_flavor.capitalize() + "Release"
             else:
-                arg = "resguard" + product.capitalize() + "Release"
+                arg = "resguard" + product_flavor.capitalize() + "Release"
         else:
-            if product != "":
-                arg = "assemble" + product.capitalize() + "Release"
+            if product_flavor != "":
+                arg = "assemble" + product_flavor.capitalize() + "Release"
             else:
                 arg = "assembleRelease"
         return subprocess.check_call([cmd, arg])
@@ -201,28 +196,34 @@ class ReleaseMe(object):
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv[1:], 'b:c:p:', ['branch=', 'channel=', 'product='])
+        project_name = ""
         branch_name = ""
         channel = ""
-        product = ""
+        product_flavor = ""
+
+        opts, args = getopt.getopt(argv[1:], 'p:b:c:f:', ['project=', 'branch=', 'channel=', 'flavor='])
+
         for opt, arg in opts:
-            if opt in ['-b', '--branch']:
+            if opt in ['-p', '--project']:
+                project_name = arg
+            elif opt in ['-b', '--branch']:
                 branch_name = arg
             elif opt in ['-c', '--channel']:
                 channel = arg
-            elif opt in ['-p', '--product']:
-                product = arg
+            elif opt in ['-f', '--flavor']:
+                product_flavor = arg
             else:
                 print("参数错误")
+
         root_dir = os.getcwd()
         release = ReleaseMe()
         release.read_properties()
-        ret = release.checkout(branch_name)
+        ret = release.checkout(project_name, branch_name)
         if ret != 0:
             print('代码拉取错误，请重试')
             exit()
 
-        ret = release.build(product)
+        ret = release.build(product_flavor)
         if ret != 0:
             print('编译失败')
             exit()
