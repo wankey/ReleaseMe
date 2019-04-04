@@ -11,8 +11,8 @@ import sys
 import requests
 
 import Util
-from Properties import Properties
 from FtpUtil import FtpUtil
+from Properties import Properties
 from jiagu import Jiagu
 
 
@@ -290,7 +290,7 @@ class Release(object):
 def main(argv):
     try:
         opts, args = getopt.getopt(argv[1:], 'p:b:f:t:c:', ['product=', 'branch=', 'buildType=', 'flavor=', 'channel='])
-        branch_name = ""
+        branch_name = "master"
         channel = ""
         project_name = ""
         flavor_name = ""
