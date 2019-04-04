@@ -2,6 +2,8 @@
 自动化apk打包脚本，再也不用手动去打包、加固、输出渠道包了，时间都省下来优化代码吧
 
 ## CHANGELOG
+### 2019-04-04
+1. 支持腾讯乐固进行加固
 
 ### 2018-12-07
 1. 提供对ProductFlavor的支持
@@ -14,15 +16,17 @@
 shell脚本实现从git拉取代码、编译、输出渠道包等工序的自动化
 
 ## USAGE
-    python /your-path-to-ReleaseMe/release.py -b BRANCH/TAG [-c] all [-p] FlavorName
+    python /your-path-to-ReleaseMe/release.py -p PROJECT_NAME -b BRANCH/TAG [-c] all [-f] FlavorName [-t] BUILD_TYPE
 
--b 后为需要打包的分支名<br>
--c 为最后要生成的渠道名，all则读取markets.txt输出全部渠道<br>
--p 为ProductFlavor的名字
+-p git服务器上的项目名*必需*<br>
+-b 后为需要打包的分支名，可选（默认为master）<br>
+-t 编译类型，app module的buildTypes，debug、release或自定义，可选（默认为release）<br>
+-c 为最后要生成的渠道名，all则读取markets.txt输出全部渠道，可选<br>
+-f 为ProductFlavor的名字，可选<br>
 
 ## IMPORTANT
 
-1. 使用前请修改[config.properties.sample](/config.properties,sample)中的配置，并重命名删除文件名中的.sample
+1. 使用前请修改[config.properties.sample](/config/config.properties,sample)中的配置，并重命名删除文件名中的.sample
 2. 本项目默认使用[walle](https://github.com/Meituan-Dianping/walle)作为渠道包输出工具，请在app中添加相关依赖以获取渠道信息
 3. 如需使用[AndResGuard](https://github.com/shwenzhang/AndResGuard),请按照官方文档配置好app/build.gradle
 
