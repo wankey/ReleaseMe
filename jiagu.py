@@ -5,7 +5,6 @@ import time
 from tencentcloud.common import credential
 from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
 from tencentcloud.ms.v20180408 import ms_client, models
-import Util
 
 
 class Jiagu(object):
