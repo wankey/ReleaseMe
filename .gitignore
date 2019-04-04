@@ -5,4 +5,5 @@ workspace/
 venv
 .idea
 __pycache__/
-config/
+config/config.properties
+config/*.keystore
