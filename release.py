@@ -79,6 +79,10 @@ class Release(object):
             os.makedirs(self.project_dir)
         self.branch_dir = os.path.join(self.project_dir, branch_name)
 
+        if os.path.exists(os.path.join(self.project_dir, "outputs")):
+            shutil.rmtree(os.path.join(self.project_dir, "outputs"))
+            pass
+
         self.outputs_dir = os.path.join(self.project_dir, "outputs", branch_name)
         if not os.path.exists(self.outputs_dir):
             os.makedirs(self.outputs_dir)
@@ -97,7 +101,7 @@ class Release(object):
         gradle_wrapper = os.path.join(self.branch_dir, 'gradlew')
 
         if os.path.exists(gradle_wrapper):
-            cmd = 'gradlew'
+            cmd = './gradlew'
         else:
             cmd = 'gradle'
         if self.use_resguard:
@@ -125,15 +129,19 @@ class Release(object):
         for mPath in pathList:
             # fnmatch 用于匹配后缀
             if fnmatch.fnmatch(mPath, keywords):
+                print(mPath)
                 fileList.append(mPath)  # 符合条件条件加到列表
             elif os.path.isdir(mPath):
-                fileList += self.recursiveSearchFiles(mPath, keywords)  # 将返回的符合文件列表追加到上层
+                if os.path.basename(mPath).startswith("AndResGuard"):
+                    pass
+                else:
+                    fileList += self.recursiveSearchFiles(mPath, keywords)  # 将返回的符合文件列表追加到上层
             else:
                 pass
         return fileList
 
     def find_and_copy_apk(self):
-        src_dir = os.path.join(self.branch_dir, self.module_app, "build", "outputs")
+        src_dir = os.path.join(self.branch_dir, self.module_app, "build", "outputs", "apk")
         return self.recursiveSearchFiles(src_dir, "*.apk")
 
     def upload_to_ftp(self, local_file):
@@ -208,8 +216,7 @@ class Release(object):
              "pass:" + self.key_password, '--out',
              os.path.join(os.path.dirname(src_file), os.path.basename(src_file).replace(".apk", "_signed.apk")),
              src_file])
-        if ret == 0:
-            os.remove(src_file)
+        os.remove(src_file)
 
     def download_file(self, url, file_name):
         print("开始下载：" + url)
@@ -239,7 +246,7 @@ class Release(object):
                         , '-c', channel_name
                         , '-e', extra_info
                         , src_file
-                        , os.path.join(dst_file, file_name.replace("-360.apk", "_" + channel_name + ".apk"))])
+                        , os.path.join(dst_file, file_name.replace("-signed.apk", "_" + channel_name + ".apk"))])
         elif self.market_tool_type == 2:
             tmpFile = os.path.join(dst_file, "tmp")
             subprocess.check_call(
@@ -269,27 +276,26 @@ class Release(object):
             else:
                 self.call_packer_tool(file_name, src_file, channel_name, "", dst_file)
 
-    def prepare_market_list(self, channel_name):
+    def prepare_market_list(self,flavor_nname, channel_name):
         for file in os.listdir(self.outputs_dir):
-            if file.endswith("-360.apk"):
-                product = file.split("-")[1]
+            if file.endswith("_signed.apk"):
                 if channel_name == "all":
                     market_file_path = os.path.join('.', 'config')
-                    market_file_path = os.path.join(market_file_path, '{0}_markets.txt'.format(product))
+                    market_file_path = os.path.join(market_file_path, '{0}_markets.txt'.format(flavor_nname))
                     if os.path.exists(market_file_path):
                         market_file = open(market_file_path, 'r')
                         lines = market_file.readlines()
                         for line in lines:
-                            self.make_channel(self.outputs_dir, file, line, product)
+                            self.make_channel(self.outputs_dir, file, line, flavor_nname)
                     else:
                         print("没有找到对应的渠道配置文件")
                 else:
-                    self.make_channel(self.outputs_dir, file, channel_name, product)
+                    self.make_channel(self.outputs_dir, file, channel_name, flavor_nname)
 
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv[1:], 'p:b:f:t:c:', ['product=', 'branch=', 'buildType=', 'flavor=', 'channel='])
+        opts, args = getopt.getopt(argv[1:], 'p:b:f:t:c:', ['product=', 'branch=', 'flavor=', 'buildType=', 'channel='])
         branch_name = "master"
         channel = ""
         project_name = ""
@@ -338,15 +344,17 @@ def main(argv):
 
                 # 生成渠道包
                 if channel != "":
-                    release.prepare_market_list(channel)
+                    release.prepare_market_list(flavor_name,channel)
 
                 if release.use_tinker:
-                    print("备份tinker")
                     src_dir = os.path.join(release.branch_dir, release.module_app, "build", "bakApk")
                     for name in os.listdir(src_dir):
                         current_file = os.path.join(src_dir, name)
                         dst_file = os.path.join(release.outputs_dir, name)
                         shutil.copytree(current_file, dst_file)
+        else:
+            for file in files:
+                shutil.copy(file, release.outputs_dir)
 
         subprocess.check_call(['open', release.outputs_dir])
     except getopt.GetoptError:

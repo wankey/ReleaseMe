@@ -23,7 +23,7 @@ class Jiagu(object):
 
             # 实例化一个请求对象
             item_id = self.create_shield_instance(client, file_path, file_md5)
-            sleep_time = 60
+            sleep_time = 5
             while True:
                 result = self.describe_shield_result(client, item_id)
                 if result.TaskStatus == 1:
@@ -31,7 +31,6 @@ class Jiagu(object):
                 elif result.TaskStatus == 3 or result.TaskStatus == 4:
                     return None
                 else:
-                    sleep_time = sleep_time * 1.2
                     print("加固中," + str(sleep_time) + "s 后再检查")
                     time.sleep(sleep_time)
 
