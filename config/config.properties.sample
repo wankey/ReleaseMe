@@ -26,7 +26,7 @@ t_cloud_secret=
 #使用的加固工具，0:不使用加固，1：360，2：乐固
 TYPE_JIAGU=0
 
-#选择渠道包输出工具(0:不输出渠道包，1:walle,2:packer-ng)
+#选择渠道包输出工具(0:不输出渠道包，1:walle,2:packer-ng,3:VasDolly)
 MARKET_TOOL_TYPE=0
 
 #application所在module名称，默认为app

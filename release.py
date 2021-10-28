@@ -63,15 +63,15 @@ class Release(object):
         self.password360 = prop["360_PASSWORD"]
         self.use_tinker = prop["USE_TINKER"] == "true"
         self.module_app = prop["MODULE_APP"]
-        self.jiagu_type = int(prop["JIAGU_TYPE"])
+        self.jiagu_type = int(prop["TYPE_JIAGU"])
         self.market_tool_type = int(prop["MARKET_TOOL_TYPE"])
-        self.ftpServer = prop["FTP_SERVER"]
-        self.ftpPort = int(prop["FTP_PORT"])
-        self.ftpAccount = prop["FTP_ACCOUNT"]
-        self.ftpPassword = prop["FTP_PASSWORD"]
-        self.ftpDir = prop["FTP_DIR"]
-        self.tencent_cloud_api = prop["t_cloud_api"]
-        self.tencent_cloud_secret = prop["t_cloud_secret"]
+#        self.ftpServer = prop["FTP_SERVER"]
+#        self.ftpPort = int(prop["FTP_PORT"])
+#        self.ftpAccount = prop["FTP_ACCOUNT"]
+#        self.ftpPassword = prop["FTP_PASSWORD"]
+#        self.ftpDir = prop["FTP_DIR"]
+#        self.tencent_cloud_api = prop["t_cloud_api"]
+#        self.tencent_cloud_secret = prop["t_cloud_secret"]
 
     def config_workspace(self, project_name, branch_name):
         self.project_dir = os.path.join(os.path.abspath('.'), 'workspace', project_name)
@@ -91,17 +91,27 @@ class Release(object):
     def checkout(self, project_name, branch_name):
         if os.path.exists(self.branch_dir):
             shutil.rmtree(self.branch_dir)
-        return subprocess.check_call(
+        ret = subprocess.check_call(
             ['git', 'clone', '-b', branch_name, os.path.join(self.git_server_path, project_name + ".git"),
              self.branch_dir])
+        if ret == 0 :
+            os.chdir(self.branch_dir)
+            gitmodules = os.path.join(self.branch_dir, ".gitmodules")
+            if os.path.exists(gitmodules):
+                subprocess.check_call(['git', 'submodule', 'update', '--init', '--recursive'])
+
+        return ret
 
     # 编译
     def build(self, flavor_name, build_type):
         os.chdir(self.branch_dir)
+        gitmodules = os.path.join(self.branch_dir, ".gitmodules")
+        if os.path.exists(gitmodules):
+            subprocess.check_call(['git', 'submodule', 'update', '--init', '--recursive'])
         gradle_wrapper = os.path.join(self.branch_dir, 'gradlew')
 
         if os.path.exists(gradle_wrapper):
-            cmd = './gradlew'
+            cmd = 'gradle'
         else:
             cmd = 'gradle'
         if self.use_resguard:
@@ -248,13 +258,18 @@ class Release(object):
                         , src_file
                         , os.path.join(dst_file, file_name.replace("-signed.apk", "_" + channel_name + ".apk"))])
         elif self.market_tool_type == 2:
-            tmpFile = os.path.join(dst_file, "tmp")
             subprocess.check_call(
                 ["java", "-jar", self.toolDir + "/packer-ng-2.0.1.jar", "generate",
                  "--channels=" + channel_name
-                    , "--outputs=" + tmpFile
+                    , "--outputs=" + dst_file
                     , src_file
                  ])
+        elif self.market_tool_type == 3:
+             subprocess.check_call(
+                    ["java", "-jar", self.toolDir + "/VasDolly.jar", "put"
+                        , '-c', channel_name
+                        , src_file
+                        , dst_file])
         else:
             print("未支持的渠道包工具")
 
